@@ -29,11 +29,23 @@ async function run() {
         const usersCollection = database.collection("users");
         const productsCollection = database.collection("products");
 
-
+        //all products
         app.get('/products', async (req, res) => {
             const products = await productsCollection.find().toArray();
             res.send(products);
         });
+
+
+        //token
+        app.post('/login', async (req, res) => {
+            const userEmail = req.body;
+            console.log(userEmail);
+            const accesToken = jwt.sign(userEmail, process.env.ACCESS_TOKEN_SECRET, {
+                expiresIn: '7d'
+            })
+            console.log(accesToken);
+            res.send(accesToken);
+        })
 
     }
     finally {
