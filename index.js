@@ -80,8 +80,43 @@ async function run() {
             const users = await usersCollection.find().toArray();
             res.send(users);
           })
-      
 
+  
+
+
+
+
+
+          //user Admin role update
+    app.put('/userAdmin', async(req, res) => {
+        const userEmail = req.body.email;
+        const filter = { email: userEmail }
+        const options = { upsert: true };
+        const updateDoc = {
+          $set: {
+            email: userEmail,
+            role: 'admin'
+          }
+        }
+        const result = await usersCollection.updateOne(filter,updateDoc, options)
+        res.send(result)
+  
+      })
+      
+      app.put('/removeAdmin', async(req, res) => {
+        const userEmail = req.body.email;
+        const filter = { email: userEmail }
+        const options = { upsert: true };
+        const updateDoc = {
+          $set: {
+            email: userEmail,
+            role: null,
+          }
+        }
+        const result = await usersCollection.updateOne(filter,updateDoc, options)
+        res.send(result)
+  
+      })
     }
     finally {
 
