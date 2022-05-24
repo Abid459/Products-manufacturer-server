@@ -48,13 +48,31 @@ async function run() {
             res.send(accesToken);
         })
 
-        //delete
+        //delete product
         app.delete('/product/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) }
             const result = productsCollection.deleteOne(query)
             res.send(result);
         })
+
+
+        //Save user
+        app.put('/users', async(req, res) => {
+            const userEmail = req.body.email;
+            const userName = req.body.name;
+            const filter = { email: userEmail }
+            const options = { upsert: true };
+            const updateDoc = {
+              $set: {
+                name:userName,
+                email:userEmail,
+              }
+            }
+            const result = await usersCollection.updateOne(filter,updateDoc, options)
+            res.send(result)
+      
+          })
 
     }
     finally {
