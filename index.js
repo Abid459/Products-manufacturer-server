@@ -94,24 +94,50 @@ async function run() {
       const id = req.params.id;
       const filter = { _id: ObjectId(id) }
       const updatedUser = req.body;
+      console.log(updatedUser)
       const { name, email, image, country, state, streetAddress, linkedin, twitter } = updatedUser;
       console.log(updatedUser)
       const options = { upsert: true }
-      const updateddoc = {
-        $set: {
-          name: updatedUser?.name,
-          email: updatedUser?.email,
-          image: updatedUser?.image,
-          address: {
-            country: updatedUser?.country,
-            state: updatedUser?.state,
-            streetAddress: updatedUser?.streetAddress
-          },
-          social: {
-            linkedin: updatedUser?.linkedin,
-            twitter: updatedUser?.updatedUser
-          }
+      let obj ={};
+
+      const objWithImage ={
+        name: updatedUser.name,
+        email: updatedUser.email,
+        image: updatedUser?.image,
+        phoneNo:updatedUser.phoneNo,
+        address: {
+          country: updatedUser.country,
+          state: updatedUser.state,
+          streetAddress: updatedUser.streetAddress,
+        },
+        social: {
+          linkedin: updatedUser.linkedin,
+          twitter: updatedUser.twitter
         }
+      }
+      const objWithOutImage ={
+        name: updatedUser.name,
+        email: updatedUser.email,
+        phoneNo:updatedUser.phoneNo,
+        address: {
+          country: updatedUser.country,
+          state: updatedUser.state,
+          streetAddress: updatedUser.streetAddress,
+        },
+        social: {
+          linkedin: updatedUser.linkedin,
+          twitter: updatedUser.twitter
+        }
+      }
+      if (image){
+        obj={...objWithImage}
+      }else{
+        obj={...objWithOutImage}
+      }
+
+
+      const updateddoc = {
+        $set: {...obj}
       }
       const result = await usersCollection.updateOne(filter, updateddoc, options)
       res.send(result)
