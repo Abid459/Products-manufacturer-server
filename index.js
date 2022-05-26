@@ -17,6 +17,22 @@ app.get('/', (req, res) => {
 })
 
 
+//verify jwt
+function verifyJWT(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+      return res.status(401).send({ message: 'Unauthorized access' })
+  }
+  const token = authHeader.split(' ')[1];
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (error, decode) => {
+      if (error) {
+          return res.status(403).send({ message: 'Access Forbiden' })
+      }
+      req.decoded = decode;
+      next();
+  })
+  console.log('Inside verify jwt', authHeader)
+}
 
 const uri = `mongodb+srv://Abid:${process.env.DB_USER_PASSWORD}@cluster0.zhnwx.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
@@ -29,10 +45,25 @@ async function run() {
     const database = client.db("db_craftsman");
     const usersCollection = database.collection("users");
     const productsCollection = database.collection("products");
+    const ordersCollection = database.collection("orders");
+    const reviewsCollection = database.collection("reviews");
 
     //all products
     app.get('/products', async (req, res) => {
       const products = await productsCollection.find().toArray();
+      res.send(products);
+    });
+
+    //find a single product
+    app.get('/product/:id',async (req,res)=>{
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) }
+      const result = await productsCollection.findOne(query)
+      res.send(result);
+    })
+
+    app.get('/orders',verifyJWT, async (req, res) => {
+      const products = await ordersCollection.find().toArray();
       res.send(products);
     });
 
@@ -53,6 +84,15 @@ async function run() {
       const id = req.params.id;
       const query = { _id: ObjectId(id) }
       const result = productsCollection.deleteOne(query)
+      res.send(result);
+    })
+
+
+    //delete order
+    app.delete('/order/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) }
+      const result = ordersCollection.deleteOne(query)
       res.send(result);
     })
 
@@ -134,13 +174,24 @@ async function run() {
       }else{
         obj={...objWithOutImage}
       }
-
-
       const updateddoc = {
         $set: {...obj}
       }
       const result = await usersCollection.updateOne(filter, updateddoc, options)
       res.send(result)
+    })
+
+    //add a order
+    app.post('/addOrder',async(req,res)=>{
+      const order =  req.body;
+      const result = await ordersCollection.insertOne(order)
+      res.send(result);
+    })
+    //add a review
+    app.post('/addReview',async(req,res)=>{
+      const order =  req.body;
+      const result = await reviewsCollection.insertOne(order)
+      res.send(result);
     })
 
 
