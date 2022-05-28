@@ -3,7 +3,9 @@ const app = express()
 var cors = require('cors')
 var jwt = require('jsonwebtoken');
 require('dotenv').config();
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+
 
 const port = process.env.PORT || 5000;
 
@@ -21,17 +23,29 @@ app.get('/', (req, res) => {
 function verifyJWT(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader) {
-      return res.status(401).send({ message: 'Unauthorized access' })
+    return res.status(401).send({ message: 'Unauthorized access' })
   }
   const token = authHeader.split(' ')[1];
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (error, decode) => {
-      if (error) {
-          return res.status(403).send({ message: 'Access Forbiden' })
-      }
-      req.decoded = decode;
-      next();
+    if (error) {
+      return res.status(403).send({ message: 'Access Forbiden' })
+    }
+    req.decoded = decode;
+    next();
   })
   console.log('Inside verify jwt', authHeader)
+}
+
+//verify admin
+const verifyAdmin = async (req, res, next) => {
+  const requester = req.decoded.email;
+  const requesterAccount = await userCollection.findOne({ email: requester });
+  if (requesterAccount.role === 'admin') {
+    next();
+  }
+  else {
+    res.status(403).send({ message: 'forbidden' });
+  }
 }
 
 const uri = `mongodb+srv://Abid:${process.env.DB_USER_PASSWORD}@cluster0.zhnwx.mongodb.net/?retryWrites=true&w=majority`;
@@ -56,19 +70,32 @@ async function run() {
     // last 3 products
     app.get('/recentProducts', async (req, res) => {
       const count = await productsCollection.countDocuments();
-      const products = await productsCollection.find().skip(count-3).limit(3).toArray();
+      const products = await productsCollection.find().skip(count - 3).limit(3).toArray();
       res.send(products);
     });
 
+    //payment
+    app.post('/create-payment-intent', async(req, res) =>{
+      const price =  req?.body?.price;
+      console.log(price)
+      const amount = price*100;
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount : amount,
+        currency: 'usd',
+        payment_method_types:['card']
+      });
+      res.send({clientSecret: paymentIntent.client_secret})
+    });
+
     //find a single product
-    app.get('/product/:id',async (req,res)=>{
+    app.get('/product/:id', async (req, res) => {
       const id = req.params.id;
       const query = { _id: ObjectId(id) }
       const result = await productsCollection.findOne(query)
       res.send(result);
     })
 
-    app.get('/orders',verifyJWT, async (req, res) => {
+    app.get('/orders', verifyJWT, async (req, res) => {
       const products = await ordersCollection.find().toArray();
       res.send(products);
     });
@@ -144,13 +171,13 @@ async function run() {
       const { name, email, image, country, state, streetAddress, linkedin, twitter } = updatedUser;
       console.log(updatedUser)
       const options = { upsert: true }
-      let obj ={};
+      let obj = {};
 
-      const objWithImage ={
+      const objWithImage = {
         name: updatedUser.name,
         email: updatedUser.email,
         image: updatedUser?.image,
-        phoneNo:updatedUser.phoneNo,
+        phoneNo: updatedUser.phoneNo,
         address: {
           country: updatedUser.country,
           state: updatedUser.state,
@@ -161,10 +188,10 @@ async function run() {
           twitter: updatedUser.twitter
         }
       }
-      const objWithOutImage ={
+      const objWithOutImage = {
         name: updatedUser.name,
         email: updatedUser.email,
-        phoneNo:updatedUser.phoneNo,
+        phoneNo: updatedUser.phoneNo,
         address: {
           country: updatedUser.country,
           state: updatedUser.state,
@@ -175,36 +202,42 @@ async function run() {
           twitter: updatedUser.twitter
         }
       }
-      if (image){
-        obj={...objWithImage}
-      }else{
-        obj={...objWithOutImage}
+      if (image) {
+        obj = { ...objWithImage }
+      } else {
+        obj = { ...objWithOutImage }
       }
       const updateddoc = {
-        $set: {...obj}
+        $set: { ...obj }
       }
       const result = await usersCollection.updateOne(filter, updateddoc, options)
       res.send(result)
     })
 
     //add a order
-    app.post('/addOrder',async(req,res)=>{
-      const order =  req.body;
+    app.post('/addOrder', async (req, res) => {
+      const order = req.body;
       const result = await ordersCollection.insertOne(order)
       res.send(result);
     })
 
-       //my orders
-       app.get('/myOrder/:email', async (req, res) => {
-        const email = req.params.email;
-        const query = { email: email }
-        const result = await ordersCollection.find(query).toArray();
-        res.send(result);
-      })
+    //my orders
+    app.get('/myOrder/:email', async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email }
+      const result = await ordersCollection.find(query).toArray();
+      res.send(result);
+    })
+    app.get('/payment/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) }
+      const result = await ordersCollection.findOne(query);
+      res.send(result);
+    })
 
     //add a review
-    app.post('/addReview',async(req,res)=>{
-      const order =  req.body;
+    app.post('/addReview', async (req, res) => {
+      const order = req.body;
       const result = await reviewsCollection.insertOne(order)
       res.send(result);
     })
@@ -254,10 +287,10 @@ async function run() {
 
 
     //All reviews
-       app.get('/reviews', async (req, res) => {
-        const users = await reviewsCollection.find().toArray();
-        res.send(users);
-      })
+    app.get('/reviews', async (req, res) => {
+      const users = await reviewsCollection.find().toArray();
+      res.send(users);
+    })
 
   }
   finally {
