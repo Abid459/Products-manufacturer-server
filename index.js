@@ -53,6 +53,12 @@ async function run() {
       const products = await productsCollection.find().toArray();
       res.send(products);
     });
+    // last 3 products
+    app.get('/recentProducts', async (req, res) => {
+      const count = await productsCollection.countDocuments();
+      const products = await productsCollection.find().skip(count-3).limit(3).toArray();
+      res.send(products);
+    });
 
     //find a single product
     app.get('/product/:id',async (req,res)=>{
@@ -245,6 +251,13 @@ async function run() {
       const result = await productsCollection.insertOne(newProduct)
       res.send(result);
     })
+
+
+    //All reviews
+       app.get('/reviews', async (req, res) => {
+        const users = await reviewsCollection.find().toArray();
+        res.send(users);
+      })
 
   }
   finally {
