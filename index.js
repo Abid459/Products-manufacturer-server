@@ -95,7 +95,7 @@ async function run() {
       res.send(result);
     })
 
-    app.get('/orders', verifyJWT, async (req, res) => {
+    app.get('/orders', verifyJWT,verifyAdmin, async (req, res) => {
       const products = await ordersCollection.find().toArray();
       res.send(products);
     });
@@ -113,7 +113,7 @@ async function run() {
     })
 
     //delete product
-    app.delete('/product/:id', async (req, res) => {
+    app.delete('/product/:id',verifyJWT,verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const query = { _id: ObjectId(id) }
       const result = productsCollection.deleteOne(query)
@@ -149,7 +149,7 @@ async function run() {
 
 
     //All users
-    app.get('/users', async (req, res) => {
+    app.get('/users',verifyJWT,verifyAdmin, async (req, res) => {
       const users = await usersCollection.find().toArray();
       res.send(users);
     })
@@ -247,7 +247,7 @@ async function run() {
 
 
     //user Admin role update
-    app.put('/userAdmin', async (req, res) => {
+    app.put('/userAdmin',verifyJWT,verifyAdmin, async (req, res) => {
       const userEmail = req.body.email;
       const filter = { email: userEmail }
       const options = { upsert: true };
@@ -262,7 +262,7 @@ async function run() {
 
     })
 
-    app.put('/removeAdmin', async (req, res) => {
+    app.put('/removeAdmin',verifyJWT,verifyAdmin, async (req, res) => {
       const userEmail = req.body.email;
       const filter = { email: userEmail }
       const options = { upsert: true };
