@@ -251,7 +251,7 @@ async function run() {
 
 
     //user Admin role update
-    app.put('/userAdmin', verifyJWT, verifyAdmin, async (req, res) => {
+    app.put('/userAdmin', async (req, res) => {
       const userEmail = req.body.email;
       const filter = { email: userEmail }
       const options = { upsert: true };
@@ -266,7 +266,7 @@ async function run() {
 
     })
 
-    app.put('/removeAdmin', verifyJWT, verifyAdmin, async (req, res) => {
+    app.put('/removeAdmin', async (req, res) => {
       const userEmail = req.body.email;
       const filter = { email: userEmail }
       const options = { upsert: true };
