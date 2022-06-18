@@ -36,17 +36,7 @@ function verifyJWT(req, res, next) {
   console.log('Inside verify jwt', authHeader)
 }
 
-//verify admin
-const verifyAdmin = async (req, res, next) => {
-  const requester = req.decoded.email;
-  const requesterAccount = await userCollection.findOne({ email: requester });
-  if (requesterAccount.role === 'admin') {
-    next();
-  }
-  else {
-    res.status(403).send({ message: 'forbidden' });
-  }
-}
+
 
 const uri = `mongodb+srv://Abid:${process.env.DB_USER_PASSWORD}@cluster0.zhnwx.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
@@ -62,6 +52,20 @@ async function run() {
     const ordersCollection = database.collection("orders");
     const reviewsCollection = database.collection("reviews");
 
+
+
+    //verify admin
+    const verifyAdmin = async (req, res, next) => {
+      const requester = req.decoded.email;
+      const requesterAccount = await usersCollection.findOne({ email: requester });
+      if (requesterAccount.role === 'admin') {
+        next();
+      }
+      else {
+        res.status(403).send({ message: 'forbidden' });
+      }
+    }
+
     //all products
     app.get('/products', async (req, res) => {
       const products = await productsCollection.find().toArray();
@@ -75,16 +79,16 @@ async function run() {
     });
 
     //payment
-    app.post('/create-payment-intent', async(req, res) =>{
-      const price =  req?.body?.price;
+    app.post('/create-payment-intent', async (req, res) => {
+      const price = req?.body?.price;
       console.log(price)
-      const amount = price*100;
+      const amount = price * 100;
       const paymentIntent = await stripe.paymentIntents.create({
-        amount : amount,
+        amount: amount,
         currency: 'usd',
-        payment_method_types:['card']
+        payment_method_types: ['card']
       });
-      res.send({clientSecret: paymentIntent.client_secret})
+      res.send({ clientSecret: paymentIntent.client_secret })
     });
 
     //find a single product
@@ -95,7 +99,7 @@ async function run() {
       res.send(result);
     })
 
-    app.get('/orders', verifyJWT,verifyAdmin, async (req, res) => {
+    app.get('/orders', verifyJWT, verifyAdmin, async (req, res) => {
       const products = await ordersCollection.find().toArray();
       res.send(products);
     });
@@ -113,7 +117,7 @@ async function run() {
     })
 
     //delete product
-    app.delete('/product/:id',verifyJWT,verifyAdmin, async (req, res) => {
+    app.delete('/product/:id', verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const query = { _id: ObjectId(id) }
       const result = productsCollection.deleteOne(query)
@@ -149,7 +153,7 @@ async function run() {
 
 
     //All users
-    app.get('/users',verifyJWT,verifyAdmin, async (req, res) => {
+    app.get('/users', verifyJWT, verifyAdmin, async (req, res) => {
       const users = await usersCollection.find().toArray();
       res.send(users);
     })
@@ -247,7 +251,7 @@ async function run() {
 
 
     //user Admin role update
-    app.put('/userAdmin',verifyJWT,verifyAdmin, async (req, res) => {
+    app.put('/userAdmin', verifyJWT, verifyAdmin, async (req, res) => {
       const userEmail = req.body.email;
       const filter = { email: userEmail }
       const options = { upsert: true };
@@ -262,7 +266,7 @@ async function run() {
 
     })
 
-    app.put('/removeAdmin',verifyJWT,verifyAdmin, async (req, res) => {
+    app.put('/removeAdmin', verifyJWT, verifyAdmin, async (req, res) => {
       const userEmail = req.body.email;
       const filter = { email: userEmail }
       const options = { upsert: true };
